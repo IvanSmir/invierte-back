@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["strictUndefinedChecks"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LotStatus {
+  available
+  reserved
+  sold
+}
+
+enum UserRole {
+  admin
+  superUser
+  user
+}
+
+model User {
+  id          String        @id @default(uuid())
+  email       String        @unique
+  password    String
+  fullName    String
+  isActive    Boolean       @default(true)
+  roles       UserRole[]    @default([user])
+  properties  Property[]
+  lots        Lot[]
+  Reservation Reservation[]
+}
+
+model Property {
+  id             String     @id @default(uuid())
+  name           String
+  description    String
+  price          Float
+  size           Float
+  type           String
+  location       String
+  latitude       Float
+  longitude      Float
+  propertyNumber String
+  registryInfo   String
+  departmentId   String
+  cityId         String
+  neighborhoodId String
+  address        String
+  images         Image[]
+  documents      Document[]
+  lots           Lot[]
+  userId         String
+  User           User       @relation(fields: [userId], references: [id])
+}
+
+model Image {
+  id         String   @id @default(uuid())
+  url        String
+  propertyId String
+  Property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  name       String
+  propertyId String
+  url        String
+  Property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Lot {
+  id          String        @id @default(uuid())
+  number      String
+  area        Float
+  price       Float
+  status      LotStatus     @default(available)
+  coordinates Json
+  propertyId  String
+  Property    Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  userId      String?
+  User        User?         @relation(fields: [userId], references: [id])
+  Reservation Reservation[]
+}
+
+model Reservation {
+  id     String @id @default(uuid())
+  phone  String
+  lotId  String
+  lot    Lot    @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  userId String
+  User   User   @relation(fields: [userId], references: [id])
+}
