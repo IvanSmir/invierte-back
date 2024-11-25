@@ -11,6 +11,8 @@ import {
   UploadedFiles,
   Query,
   ParseUUIDPipe,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { PropertyService } from './property.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
@@ -35,7 +37,7 @@ export class PropertyController {
   @Post()
   @Auth()
   @ApiBearerAuth()
-  @UseInterceptors(FilesInterceptor('files'))
+  // @UseInterceptors(FilesInterceptor('files'))
   async create(
     @Body() createPropertyDto: CreatePropertyDto,
     //@UploadedFiles() files: Express.Multer.File[],
@@ -54,13 +56,12 @@ export class PropertyController {
 
   @Get()
   async findAll(
-    @Query('page') page: number,
-    @Query('limit') limit: number,
-    @Query() filters: PropertyFilterDto,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query() filters?: Omit<PropertyFilterDto, 'page' | 'limit'>,
   ) {
-    return this.propertyService.findAll(page, limit, filters);
+    return this.propertyService.findAll(limit, page, filters);
   }
-
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) uuid: string) {
     return this.propertyService.findOne(uuid);

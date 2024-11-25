@@ -74,6 +74,13 @@ export class PropertyService {
 
   async findAll(limit: number, page: number, filters: PropertyFilterDto) {
     try {
+      const whereClause = {
+        ...(filters.departmentId && { departmentId: filters.departmentId }),
+        ...(filters.cityId && { cityId: filters.cityId }),
+        ...(filters.neighborhoodId && {
+          neighborhoodId: filters.neighborhoodId,
+        }),
+      };
       const properties = await this.prisma.property.findMany({
         select: {
           id: true,
@@ -90,23 +97,7 @@ export class PropertyService {
           neighborhoodId: true,
           images: true,
         },
-        where: {
-          AND: [
-            {
-              departmentId: filters.departmentId
-                ? filters.departmentId
-                : undefined,
-            },
-            {
-              cityId: filters.cityId ? filters.cityId : undefined,
-            },
-            {
-              neighborhoodId: filters.neighborhoodId
-                ? filters.neighborhoodId
-                : undefined,
-            },
-          ],
-        },
+        where: whereClause,
         skip: (page - 1) * limit,
         take: limit,
       });
