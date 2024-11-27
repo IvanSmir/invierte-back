@@ -1,12 +1,12 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { HandleDbErrorService } from 'src/common/services/handle-db-error.service';
-import { Prisma, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { PropertyFilterDto } from './dto/property-filter.dto';
 import { FileUploadService } from 'src/common/services/file-upload.service';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { SupabaseService } from 'src/supabase/supabase.service';
 
 @Injectable()
 export class PropertyService {
@@ -14,8 +14,10 @@ export class PropertyService {
     private readonly prisma: PrismaService,
     private readonly handleDbError: HandleDbErrorService,
     private readonly fileUploadService: FileUploadService,
-    @Inject('FIREBASE_STORAGE') private readonly storage: any,
+    private readonly supabaseService: SupabaseService,
   ) {}
+
+  BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME;
 
   async create(
     createPropertyDto: CreatePropertyDto,
@@ -67,6 +69,7 @@ export class PropertyService {
                 price: lot.price,
                 status: lot.status,
                 coordinates: lot.coordinates,
+                userId: user.id,
               })),
             },
           },
@@ -126,7 +129,6 @@ export class PropertyService {
       this.handleDbError.handleDbError(error, 'Property', 'findAll');
     }
   }
-
   async findOne(uuid: string) {
     try {
       const property = await this.prisma.property.findUnique({
@@ -147,40 +149,10 @@ export class PropertyService {
       throw this.handleDbError.handleDbError(error, 'Property', 'findOne');
     }
   }
-
   async update(uuid: string, updatePropertyDto: UpdatePropertyDto) {
     try {
     } catch (error) {
       throw this.handleDbError.handleDbError(error, 'Property', 'update');
-    }
-  }
-
-  async uploadFile(file: Express.Multer.File): Promise<string> {
-    const fileName = `${Date.now()}-${file.originalname}`;
-    const storageRef = ref(this.storage, `test-uploads/${fileName}`);
-
-    try {
-      await uploadBytes(storageRef, file.buffer);
-      const downloadURL = await getDownloadURL(storageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw new Error('File upload failed');
-    }
-  }
-
-  async testUpload(): Promise<string> {
-    const testFile = Buffer.from('This is a test file content');
-    const fileName = `test-file-${Date.now()}.txt`;
-    const storageRef = ref(this.storage, `test-uploads/${fileName}`);
-
-    try {
-      await uploadBytes(storageRef, testFile);
-      const downloadURL = await getDownloadURL(storageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error('Error in test upload:', error);
-      throw new Error('Test upload failed');
     }
   }
 }
