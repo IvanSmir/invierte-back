@@ -46,8 +46,7 @@ model Property {
   size           Float
   type           String
   location       String
-  latitude       Float
-  longitude      Float
+  coordinates    Json
   propertyNumber String
   registryInfo   String
   departmentId   String

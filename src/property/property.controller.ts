@@ -13,6 +13,7 @@ import {
   ParseUUIDPipe,
   DefaultValuePipe,
   ParseIntPipe,
+  UploadedFile,
 } from '@nestjs/common';
 import { PropertyService } from './property.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
@@ -21,7 +22,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { Auth, GetUser, RoleProtected } from 'src/auth/decorators';
 import { ValidRoles } from 'src/auth/interfaces';
 import { FileUploadService } from 'src/common/services/file-upload.service';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+  FilesInterceptor,
+} from '@nestjs/platform-express';
 import { User } from '@prisma/client';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PropertyFilterDto } from './dto/property-filter.dto';
@@ -37,21 +42,31 @@ export class PropertyController {
   @Post()
   @Auth()
   @ApiBearerAuth()
-  // @UseInterceptors(FilesInterceptor('files'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'images', maxCount: 10 },
+      { name: 'documents', maxCount: 5 },
+    ]),
+    new (class {
+      intercept(context, next) {
+        const req = context.switchToHttp().getRequest();
+        if (req.body.createPropertyDto) {
+          req.body = JSON.parse(req.body.createPropertyDto);
+        }
+        return next.handle();
+      }
+    })(),
+  )
   async create(
     @Body() createPropertyDto: CreatePropertyDto,
-    //@UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles()
+    files: {
+      images?: Express.Multer.File[];
+      documents?: Express.Multer.File[];
+    },
     @GetUser() user: User,
   ) {
-    //const uploadedUrls = await this.fileUploadService.uploadFiles(files);
-
-    // const images = uploadedUrls.filter((url) => url.includes('image'));
-    // const documents = uploadedUrls.filter((url) => url.includes('document'));
-
-    // createPropertyDto.images = images;
-    // createPropertyDto.documents = documents;
-
-    return this.propertyService.create(createPropertyDto, user);
+    return this.propertyService.create(createPropertyDto, user, files);
   }
 
   @Get()
@@ -75,5 +90,26 @@ export class PropertyController {
     @Body() updatePropertyDto: UpdatePropertyDto,
   ) {
     return this.propertyService.update(uuid, updatePropertyDto);
+  }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    try {
+      const result = await this.propertyService.uploadFile(file);
+      return { message: 'File uploaded successfully', url: result };
+    } catch (error) {
+      return { message: 'File upload failed', error: error.message };
+    }
+  }
+
+  @Post('test-upload')
+  async testUpload() {
+    try {
+      const result = await this.propertyService.testUpload();
+      return { message: 'Test upload successful', result };
+    } catch (error) {
+      return { message: 'Test upload failed', error: error.message };
+    }
   }
 }

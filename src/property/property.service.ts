@@ -1,20 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { HandleDbErrorService } from 'src/common/services/handle-db-error.service';
 import { Prisma, User } from '@prisma/client';
 import { PropertyFilterDto } from './dto/property-filter.dto';
+import { FileUploadService } from 'src/common/services/file-upload.service';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 @Injectable()
 export class PropertyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly handleDbError: HandleDbErrorService,
+    private readonly fileUploadService: FileUploadService,
+    @Inject('FIREBASE_STORAGE') private readonly storage: any,
   ) {}
 
-  async create(createPropertyDto: CreatePropertyDto, user: User) {
+  async create(
+    createPropertyDto: CreatePropertyDto,
+    user: User,
+    files: {
+      images?: Express.Multer.File[];
+      documents?: Express.Multer.File[];
+    },
+  ) {
     try {
+      const uploadedFiles = await this.fileUploadService.uploadFiles(files);
+
       const property = await this.prisma.property.create({
         data: {
           userId: user.id,
@@ -24,8 +37,7 @@ export class PropertyService {
           size: createPropertyDto.size,
           type: createPropertyDto.type,
           location: createPropertyDto.location,
-          latitude: createPropertyDto.latitude,
-          longitude: createPropertyDto.longitude,
+          coordinates: createPropertyDto.coordinates,
           propertyNumber: createPropertyDto.propertyNumber,
           registryInfo: createPropertyDto.registryInfo,
           address: createPropertyDto.address,
@@ -34,16 +46,16 @@ export class PropertyService {
           neighborhoodId: createPropertyDto.neighborhoodId,
           images: {
             createMany: {
-              data: createPropertyDto.images.map((url) => ({
-                url,
+              data: uploadedFiles.images.map((image) => ({
+                url: image.url,
               })),
             },
           },
           documents: {
             createMany: {
-              data: createPropertyDto.documents.map((doc) => ({
-                name: doc,
-                url: doc,
+              data: uploadedFiles.documents.map((doc) => ({
+                name: doc.name,
+                url: doc.url,
               })),
             },
           },
@@ -90,8 +102,7 @@ export class PropertyService {
           size: true,
           type: true,
           location: true,
-          latitude: true,
-          longitude: true,
+          coordinates: true,
           departmentId: true,
           cityId: true,
           neighborhoodId: true,
@@ -139,69 +150,37 @@ export class PropertyService {
 
   async update(uuid: string, updatePropertyDto: UpdatePropertyDto) {
     try {
-      const property = await this.prisma.property.update({
-        where: { id: uuid },
-        data: {
-          name: updatePropertyDto.name ?? Prisma.skip,
-          description: updatePropertyDto.description ?? Prisma.skip,
-          price: updatePropertyDto.price ?? Prisma.skip,
-          size: updatePropertyDto.size ?? Prisma.skip,
-          type: updatePropertyDto.type ?? Prisma.skip,
-          location: updatePropertyDto.location ?? Prisma.skip,
-          latitude: updatePropertyDto.latitude ?? Prisma.skip,
-          longitude: updatePropertyDto.longitude ?? Prisma.skip,
-          propertyNumber: updatePropertyDto.propertyNumber ?? Prisma.skip,
-          registryInfo: updatePropertyDto.registryInfo ?? Prisma.skip,
-          address: updatePropertyDto.address ?? Prisma.skip,
-          departmentId: updatePropertyDto.departmentId ?? Prisma.skip,
-          cityId: updatePropertyDto.cityId ?? Prisma.skip,
-          neighborhoodId: updatePropertyDto.neighborhoodId ?? Prisma.skip,
-          images: updatePropertyDto.images
-            ? {
-                deleteMany: {},
-                createMany: {
-                  data: updatePropertyDto.images.map((url) => ({
-                    url,
-                  })),
-                },
-              }
-            : Prisma.skip,
-          documents: updatePropertyDto.documents
-            ? {
-                deleteMany: {},
-                createMany: {
-                  data: updatePropertyDto.documents.map((doc) => ({
-                    name: doc,
-                    url: doc,
-                  })),
-                },
-              }
-            : Prisma.skip,
-          lots: updatePropertyDto.lots
-            ? {
-                deleteMany: {}, // Borra todos los lotes existentes
-                createMany: {
-                  data: updatePropertyDto.lots.map((lot) => ({
-                    number: lot.number,
-                    area: lot.area,
-                    price: lot.price,
-                    status: lot.status,
-                    coordinates: lot.coordinates,
-                  })),
-                },
-              }
-            : Prisma.skip,
-        },
-        include: {
-          lots: true,
-          images: true,
-          documents: true,
-        },
-      });
-
-      return property;
     } catch (error) {
       throw this.handleDbError.handleDbError(error, 'Property', 'update');
+    }
+  }
+
+  async uploadFile(file: Express.Multer.File): Promise<string> {
+    const fileName = `${Date.now()}-${file.originalname}`;
+    const storageRef = ref(this.storage, `test-uploads/${fileName}`);
+
+    try {
+      await uploadBytes(storageRef, file.buffer);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw new Error('File upload failed');
+    }
+  }
+
+  async testUpload(): Promise<string> {
+    const testFile = Buffer.from('This is a test file content');
+    const fileName = `test-file-${Date.now()}.txt`;
+    const storageRef = ref(this.storage, `test-uploads/${fileName}`);
+
+    try {
+      await uploadBytes(storageRef, testFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error in test upload:', error);
+      throw new Error('Test upload failed');
     }
   }
 }

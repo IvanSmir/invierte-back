@@ -11,7 +11,6 @@ import {
   IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { File } from 'buffer';
 
 enum LotStatus {
   available = 'available',
@@ -98,13 +97,17 @@ export class CreatePropertyDto {
   })
   location: string;
 
-  @IsLatitude()
-  @ApiProperty({ example: -25.2867, description: 'Latitude of the property' })
-  latitude: number;
-
-  @IsLongitude()
-  @ApiProperty({ example: -57.3333, description: 'Longitude of the property' })
-  longitude: number;
+  @IsArray()
+  @ApiProperty({
+    example: [
+      [-25.2867, -57.3333],
+      [-25.2864, -57.3333],
+      [-25.2864, -57.333],
+      [-25.2867, -57.333],
+    ],
+    description: 'Coordinates defining the lot boundaries',
+  })
+  coordinates: number[][];
 
   @IsString()
   @ApiProperty({
@@ -138,23 +141,6 @@ export class CreatePropertyDto {
     description: 'Address of the property',
   })
   address: string;
-
-  @IsOptional()
-  @ApiProperty({
-    description: 'Array of image file for the property',
-  })
-  images?: string[];
-
-  @IsOptional()
-  @ApiProperty({
-    example: [
-      'escritura.pdf',
-      'plano_catastral.pdf',
-      'certificado_libre_deuda.pdf',
-    ],
-    description: 'Array of document files for the property',
-  })
-  documents?: string[];
 
   @IsArray()
   @ValidateNested({ each: true })
