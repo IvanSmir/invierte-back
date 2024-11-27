@@ -91,25 +91,4 @@ export class PropertyController {
   ) {
     return this.propertyService.update(uuid, updatePropertyDto);
   }
-
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    try {
-      const result = await this.propertyService.uploadFile(file);
-      return { message: 'File uploaded successfully', url: result };
-    } catch (error) {
-      return { message: 'File upload failed', error: error.message };
-    }
-  }
-
-  @Post('test-upload')
-  async testUpload() {
-    try {
-      const result = await this.propertyService.testUpload();
-      return { message: 'Test upload successful', result };
-    } catch (error) {
-      return { message: 'Test upload failed', error: error.message };
-    }
-  }
 }
