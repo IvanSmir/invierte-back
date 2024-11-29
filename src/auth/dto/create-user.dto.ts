@@ -3,9 +3,6 @@ import { IsString, IsEmail, Matches, MinLength } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
-  @Matches(/^[a-zA-Z\s]+$/, {
-    message: 'Full name must be a string',
-  })
   @MinLength(3)
   @ApiProperty({
     example: 'John Doe',
