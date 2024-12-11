@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -28,6 +28,7 @@ export class PropertyService {
     },
   ) {
     try {
+      console.log(files);
       const uploadedFiles = await this.fileUploadService.uploadFiles(files);
 
       const property = await this.prisma.property.create({
@@ -141,7 +142,7 @@ export class PropertyService {
       });
 
       if (!property) {
-        throw new Error(`Property with UUID ${uuid} not found`);
+        throw new NotFoundException(`Property with UUID ${uuid} not found`);
       }
 
       return property;
