@@ -4,7 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-const host = process.env.FRONTEND_URL || 'http://127.0.0.1:3001';
+const host = process.env.FRONTEND_URL  || 'http://localhost:3000' || 'http://127.0.0.1:3001';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
