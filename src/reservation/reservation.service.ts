@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CreateReservationDto } from './dto/create-reservation.dto';
-import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { ReservationFilterDto } from './dto/reservation-filter.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { HandleDbErrorService } from 'src/common/services/handle-db-error.service';
 import { User } from '@prisma/client';
@@ -34,10 +34,48 @@ export class ReservationService {
     }
   }
 
-  async findAll() {
+  async findAll(filterDto?: ReservationFilterDto) {
     try {
-      const reservations = await this.prisma.reservation.findMany();
-      return reservations;
+      const { limit = 10, page = 1 } = filterDto || {};
+      const offset = (page - 1) * limit;
+
+      const [reservations, total] = await Promise.all([
+        this.prisma.reservation.findMany({
+          skip: offset,
+          take: limit,
+          include: {
+            User: {
+              select: {
+                id: true,
+                email: true,
+                fullName: true,
+              },
+            },
+            lot: {
+              select: {
+                id: true,
+                propertyId: true,
+              },
+            },
+          },
+          orderBy: {
+            id: 'desc',
+          },
+        }),
+        this.prisma.reservation.count(),
+      ]);
+
+      return {
+        data: reservations,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPrevPage: page > 1,
+        },
+      };
     } catch (error) {
       this.handleDbError.handleDbError(error, 'reservation', 'findAll');
     }

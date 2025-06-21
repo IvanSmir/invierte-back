@@ -1,17 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
-import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { ReservationFilterDto } from './dto/reservation-filter.dto';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from '@prisma/client';
+import { ValidRoles } from 'src/auth/interfaces';
 
 @Controller('reservation')
 export class ReservationController {
@@ -27,7 +20,8 @@ export class ReservationController {
   }
 
   @Get()
-  findAll() {
-    return this.reservationService.findAll();
+  @Auth(ValidRoles.admin)
+  findAll(@Query() filterDto: ReservationFilterDto) {
+    return this.reservationService.findAll(filterDto);
   }
 }
