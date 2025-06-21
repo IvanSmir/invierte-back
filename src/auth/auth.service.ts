@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 import * as bcrypt from 'bcrypt';
@@ -37,7 +33,6 @@ export class AuthService {
 
       delete user.password;
       delete user.isActive;
-      delete user.roles;
 
       return {
         user: user,
@@ -68,6 +63,7 @@ export class AuthService {
           id: true,
           fullName: true,
           isActive: true,
+          roles: true,
         },
       });
 
