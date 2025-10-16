@@ -40,6 +40,7 @@ export class AuthService {
           id: user.id,
           email: user.email,
           fullName: user.fullName,
+
         }),
       };
     } catch (error) {
@@ -102,6 +103,34 @@ export class AuthService {
         fullName: user.fullName,
       }),
     };
+  }
+
+  async updateFirstTime(userId: string) {
+    try {
+      const updatedUser = await this.prismaService.user.update({
+        where: { id: userId },
+        data: { firstTime: false },
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          firstTime: true,
+          isActive: true,
+          roles: true,
+        },
+      });
+
+      return {
+        user: updatedUser,
+        message: 'First time status updated successfully',
+      };
+    } catch (error) {
+      this.handleDbErrorService.handleDbError(
+        error,
+        'User',
+        userId,
+      );
+    }
   }
 
   private getJwtToken(payload: JwtPayload) {

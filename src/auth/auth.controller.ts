@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   UseGuards,
   Req,
@@ -34,5 +35,11 @@ export class AuthController {
   @Post('login')
   loginUser(@Body() loginUserDto: LoginUserDto) {
     return this.authService.login(loginUserDto);
+  }
+
+  @Patch('update-first-time')
+  @Auth()
+  updateFirstTime(@GetUser() user: User) {
+    return this.authService.updateFirstTime(user.id);
   }
 }
