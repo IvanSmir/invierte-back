@@ -111,6 +111,7 @@ export class PropertyService {
           cityId: true,
           neighborhoodId: true,
           images: true,
+          lots: true,
         },
         where: whereClause,
         skip: (page - 1) * limit,
